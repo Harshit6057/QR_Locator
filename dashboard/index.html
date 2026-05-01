@@ -56,6 +56,12 @@
       overflow: hidden;
     }
 
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -225,23 +231,25 @@
     </div>
 
     <div class="card">
-      <table>
-        <thead>
-          <tr>
-            <th>QR ID</th>
-            <th>Scanned At</th>
-            <th>IP Address</th>
-            <th>Location</th>
-            <th>Device Info</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody">
-          <tr>
-            <td colspan="6" class="empty-state">Loading data...</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>QR ID</th>
+              <th>Scanned At</th>
+              <th>IP Address</th>
+              <th>Location</th>
+              <th>Device Info</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="6" class="empty-state">Loading data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
