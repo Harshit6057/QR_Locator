@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Item Locator</title>
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-hover: #4338CA;
+      --bg-color: #0F172A;
+      --card-bg: #1E293B;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --success: #10B981;
+      --error: #EF4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background-color: var(--card-bg);
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      animation: slideUp 0.5s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .icon-container {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--primary), #818CF8);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto 24px;
+      box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+    }
+
+    .icon-container svg {
+      width: 40px;
+      height: 40px;
+      color: white;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 12px;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+    }
+
+    p {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+
+    .status {
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      display: none;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .status.loading {
+      display: block;
+      background-color: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .status.success {
+      display: block;
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .status.error {
+      display: block;
+      background-color: rgba(239, 68, 68, 0.1);
+      color: var(--error);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 14px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s;
+      box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+    }
+
+    .btn:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      background-color: #475569;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .id-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.1);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-family: monospace;
+      color: var(--text-muted);
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="icon-container">
+      <svg xmlns="http://www.w3.org/-svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    </div>
+    
+    <h1>Help Find This Item</h1>
+    <p>This item has been marked as lost. By sharing your approximate location, you can help the owner find it.</p>
+    
+    <div id="statusBox" class="status"></div>
+    
+    <button id="locationBtn" class="btn">Share Location</button>
+
+    <div class="id-badge">ID: <span id="displayId">{{QR_ID}}</span></div>
+  </div>
+
+  <script>
+    // Variables injected by backend
+    const QR_ID = '{{QR_ID}}';
+    const LOG_ID = '{{LOG_ID}}';
+
+    const locationBtn = document.getElementById('locationBtn');
+    const statusBox = document.getElementById('statusBox');
+
+    function setStatus(type, message, isLoading = false) {
+      statusBox.className = `status ${type}`;
+      if (isLoading) {
+        statusBox.innerHTML = `<span class="spinner"></span> ${message}`;
+      } else {
+        statusBox.innerText = message;
+      }
+    }
+
+    locationBtn.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        setStatus('error', 'Geolocation is not supported by your browser.');
+        return;
+      }
+
+      locationBtn.disabled = true;
+      setStatus('loading', 'Requesting location...', true);
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          setStatus('loading', 'Saving location...', true);
+          
+          try {
+            const response = await fetch('/save-location', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                qrId: QR_ID,
+                logId: LOG_ID,
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+              })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+              setStatus('success', 'Thank you! Location shared successfully. The owner has been notified.');
+              locationBtn.style.display = 'none';
+            } else {
+              setStatus('error', 'Failed to save location. Please try again.');
+              locationBtn.disabled = false;
+            }
+          } catch (error) {
+            console.error(error);
+            setStatus('error', 'Network error. Please try again later.');
+            locationBtn.disabled = false;
+          }
+        },
+        (error) => {
+          locationBtn.disabled = false;
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              setStatus('error', 'Permission denied. We cannot track the exact location.');
+              break;
+            case error.POSITION_UNAVAILABLE:
+              setStatus('error', 'Location information is unavailable.');
+              break;
+            case error.TIMEOUT:
+              setStatus('error', 'The request to get user location timed out.');
+              break;
+            default:
+              setStatus('error', 'An unknown error occurred.');
+              break;
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    });
+  </script>
+</body>
+</html>
