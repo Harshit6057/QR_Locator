@@ -8,6 +8,7 @@
   <style>
     :root {
       --primary: #4F46E5;
+      --primary-hover: #4338CA;
       --bg-color: #F1F5F9;
       --card-bg: #FFFFFF;
       --text-main: #0F172A;
@@ -127,6 +128,92 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13px;
+    }
+    .btn:hover { background: var(--primary-hover); }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal {
+      background: white;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      height: 500px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    }
+    .modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 { font-size: 18px; }
+    .close-btn {
+      background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted);
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #F8FAFC;
+    }
+    .message {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      max-width: 80%;
+      word-break: break-word;
+    }
+    .msg-finder {
+      background: #E2E8F0;
+      color: var(--text-main);
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+    }
+    .msg-owner {
+      background: var(--primary);
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+    .chat-input-area {
+      padding: 16px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 12px;
+    }
+    .chat-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      outline: none;
+    }
+    .chat-input:focus { border-color: var(--primary); }
   </style>
 </head>
 <body>
@@ -134,7 +221,7 @@
   <div class="container">
     <div class="header">
       <h1>Tracking Dashboard</h1>
-      <button onclick="fetchLogs()" style="background:var(--primary);color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-weight:500;">Refresh Data</button>
+      <button onclick="fetchLogs()" class="btn" style="padding: 10px 20px; font-size: 14px;">Refresh Data</button>
     </div>
 
     <div class="card">
@@ -146,40 +233,61 @@
             <th>IP Address</th>
             <th>Location</th>
             <th>Device Info</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="tableBody">
           <tr>
-            <td colspan="5" class="empty-state">Loading data...</td>
+            <td colspan="6" class="empty-state">Loading data...</td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
 
+  <!-- Chat Modal -->
+  <div class="modal-overlay" id="chatModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Chat</h2>
+        <button class="close-btn" onclick="closeChat()">&times;</button>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <!-- Messages go here -->
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" class="chat-input" placeholder="Type a message...">
+        <button class="btn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    let activeLogId = null;
+    let chatInterval = null;
+    let lastMessageCount = 0;
+
     async function fetchLogs() {
       const tbody = document.getElementById('tableBody');
-      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Loading data...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading data...</td></tr>';
       
       try {
         const response = await fetch('/api/logs');
         const data = await response.json();
         
         if (data.error) {
-          tbody.innerHTML = `<tr><td colspan="5" class="empty-state" style="color:red">Error: ${data.error}</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" class="empty-state" style="color:red">Error: ${data.error}</td></tr>`;
           return;
         }
 
         if (data.logs.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No scan logs found.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No scan logs found.</td></tr>';
           return;
         }
 
         tbody.innerHTML = '';
         data.logs.forEach(log => {
           const row = document.createElement('tr');
-          
           const date = new Date(log.scanned_at || log.created_at || Date.now()).toLocaleString();
           
           let locationCell = '<span class="badge badge-warning">IP Only</span>';
@@ -198,6 +306,7 @@
             <td style="font-family: monospace;">${log.ip_address}</td>
             <td>${locationCell}</td>
             <td class="device-info" title="${log.device_info}">${log.device_info}</td>
+            <td><button class="btn" onclick="openChat('${log.id}', '${log.qr_id}')">Chat</button></td>
           `;
           
           tbody.appendChild(row);
@@ -205,12 +314,85 @@
 
       } catch (err) {
         console.error(err);
-        tbody.innerHTML = `<tr><td colspan="5" class="empty-state" style="color:red">Failed to connect to server.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state" style="color:red">Failed to connect to server.</td></tr>`;
       }
     }
 
+    // Chat functionality
+    function openChat(logId, qrId) {
+      activeLogId = logId;
+      lastMessageCount = 0;
+      document.getElementById('modalTitle').innerText = `Chat - ${qrId}`;
+      document.getElementById('chatMessages').innerHTML = '';
+      document.getElementById('chatModal').style.display = 'flex';
+      
+      fetchMessages();
+      chatInterval = setInterval(fetchMessages, 3000);
+    }
+
+    function closeChat() {
+      document.getElementById('chatModal').style.display = 'none';
+      if (chatInterval) clearInterval(chatInterval);
+      activeLogId = null;
+    }
+
+    async function fetchMessages() {
+      if (!activeLogId) return;
+      
+      try {
+        const res = await fetch(`/api/messages/${activeLogId}`);
+        const data = await res.json();
+        
+        if (data.messages && data.messages.length > lastMessageCount) {
+          const chatMessages = document.getElementById('chatMessages');
+          chatMessages.innerHTML = '';
+          data.messages.forEach(msg => {
+            const div = document.createElement('div');
+            div.className = `message ${msg.sender === 'owner' ? 'msg-owner' : 'msg-finder'}`;
+            div.innerText = msg.message;
+            chatMessages.appendChild(div);
+          });
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+          lastMessageCount = data.messages.length;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text || !activeLogId) return;
+      
+      input.value = '';
+      
+      const chatMessages = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = 'message msg-owner';
+      div.innerText = text;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      lastMessageCount++;
+
+      try {
+        await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logId: activeLogId, sender: 'owner', message: text })
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
     // Initial load
     fetchLogs();
+    setInterval(fetchLogs, 10000); // Poll for new locations every 10s
   </script>
 </body>
 </html>

@@ -14,6 +14,7 @@
       --text-muted: #94A3B8;
       --success: #10B981;
       --error: #EF4444;
+      --error-hover: #DC2626;
     }
 
     * {
@@ -43,6 +44,8 @@
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.05);
       animation: slideUp 0.5s ease-out;
+      display: flex;
+      flex-direction: column;
     }
 
     @keyframes slideUp {
@@ -125,6 +128,7 @@
       width: 100%;
       transition: all 0.2s;
       box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+      margin-bottom: 12px;
     }
 
     .btn:hover {
@@ -132,8 +136,13 @@
       transform: translateY(-1px);
     }
 
-    .btn:active {
-      transform: translateY(0);
+    .btn.error-btn {
+      background-color: var(--error);
+      box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+    }
+
+    .btn.error-btn:hover {
+      background-color: var(--error-hover);
     }
 
     .btn:disabled {
@@ -167,28 +176,118 @@
       font-size: 12px;
       font-family: monospace;
       color: var(--text-muted);
-      margin-top: 20px;
+      margin-top: 10px;
     }
+
+    /* Chat UI Styles */
+    .chat-section {
+      margin-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 300px;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .message {
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      max-width: 85%;
+      word-break: break-word;
+      text-align: left;
+    }
+
+    .msg-finder {
+      background: var(--primary);
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+
+    .msg-owner {
+      background: #334155;
+      color: white;
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+    }
+
+    .chat-input-area {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: white;
+      outline: none;
+      font-size: 14px;
+    }
+
+    .chat-input:focus {
+      border-color: var(--primary);
+    }
+
+    .chat-send-btn {
+      background: var(--primary);
+      border: none;
+      color: white;
+      border-radius: 8px;
+      padding: 0 16px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .chat-send-btn:hover { background: var(--primary-hover); }
   </style>
 </head>
 <body>
 
   <div class="container">
     <div class="icon-container">
-      <svg xmlns="http://www.w3.org/-svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     </div>
     
     <h1>Help Find This Item</h1>
-    <p>This item has been marked as lost. By sharing your approximate location, you can help the owner find it.</p>
+    <p>This item has been marked as lost. By sharing your location, you can help the owner find it.</p>
     
     <div id="statusBox" class="status"></div>
     
-    <button id="locationBtn" class="btn">Share Location</button>
+    <button id="locationBtn" class="btn">Share Live Location</button>
+    <button id="stopLocationBtn" class="btn error-btn" style="display:none;">Stop Sharing</button>
 
     <div class="id-badge">ID: <span id="displayId">{{QR_ID}}</span></div>
+
+    <!-- Chat Interface -->
+    <div class="chat-section">
+      <h3 style="font-size: 16px; margin-bottom: 12px; text-align: left;">Chat with Owner</h3>
+      <div class="chat-messages" id="chatMessages">
+        <div class="message msg-owner">Hello! Thank you for scanning. Please share your location or message me here.</div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" class="chat-input" placeholder="Type a message...">
+        <button id="chatSendBtn" class="chat-send-btn">Send</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -197,7 +296,10 @@
     const LOG_ID = '{{LOG_ID}}';
 
     const locationBtn = document.getElementById('locationBtn');
+    const stopLocationBtn = document.getElementById('stopLocationBtn');
     const statusBox = document.getElementById('statusBox');
+    
+    let watchId = null;
 
     function setStatus(type, message, isLoading = false) {
       statusBox.className = `status ${type}`;
@@ -215,18 +317,19 @@
       }
 
       locationBtn.disabled = true;
-      setStatus('loading', 'Requesting location...', true);
+      setStatus('loading', 'Starting live tracking...', true);
 
-      navigator.geolocation.getCurrentPosition(
+      // Use watchPosition for continuous tracking
+      watchId = navigator.geolocation.watchPosition(
         async (position) => {
-          setStatus('loading', 'Saving location...', true);
+          setStatus('success', 'Live Tracking Active. The owner is receiving your location.');
+          locationBtn.style.display = 'none';
+          stopLocationBtn.style.display = 'block';
           
           try {
-            const response = await fetch('/save-location', {
+            await fetch('/save-location', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 qrId: QR_ID,
                 logId: LOG_ID,
@@ -234,27 +337,15 @@
                 longitude: position.coords.longitude
               })
             });
-
-            const result = await response.json();
-            
-            if (result.success) {
-              setStatus('success', 'Thank you! Location shared successfully. The owner has been notified.');
-              locationBtn.style.display = 'none';
-            } else {
-              setStatus('error', 'Failed to save location. Please try again.');
-              locationBtn.disabled = false;
-            }
           } catch (error) {
-            console.error(error);
-            setStatus('error', 'Network error. Please try again later.');
-            locationBtn.disabled = false;
+            console.error("Failed to update location:", error);
           }
         },
         (error) => {
           locationBtn.disabled = false;
           switch(error.code) {
             case error.PERMISSION_DENIED:
-              setStatus('error', 'Permission denied. We cannot track the exact location.');
+              setStatus('error', 'Permission denied. We cannot track the location.');
               break;
             case error.POSITION_UNAVAILABLE:
               setStatus('error', 'Location information is unavailable.');
@@ -274,6 +365,80 @@
         }
       );
     });
+
+    stopLocationBtn.addEventListener('click', () => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        setStatus('success', 'Location sharing stopped.');
+        stopLocationBtn.style.display = 'none';
+        locationBtn.style.display = 'block';
+        locationBtn.disabled = false;
+        locationBtn.innerText = 'Resume Sharing Location';
+      }
+    });
+
+    // Chat Functionality
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const chatSendBtn = document.getElementById('chatSendBtn');
+    let lastMessageCount = 0;
+
+    async function fetchMessages() {
+      if (!LOG_ID || LOG_ID === '{{LOG_ID}}') return; // Don't fetch if no real log ID
+      
+      try {
+        const res = await fetch(`/api/messages/${LOG_ID}`);
+        const data = await res.json();
+        
+        if (data.messages && data.messages.length > lastMessageCount) {
+          chatMessages.innerHTML = ''; // Clear default
+          data.messages.forEach(msg => {
+            const div = document.createElement('div');
+            div.className = `message ${msg.sender === 'finder' ? 'msg-finder' : 'msg-owner'}`;
+            div.innerText = msg.message;
+            chatMessages.appendChild(div);
+          });
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+          lastMessageCount = data.messages.length;
+        }
+      } catch (err) {
+        console.error("Chat fetch error:", err);
+      }
+    }
+
+    chatSendBtn.addEventListener('click', async () => {
+      const text = chatInput.value.trim();
+      if (!text || !LOG_ID || LOG_ID === '{{LOG_ID}}') return;
+      
+      chatInput.value = '';
+      
+      // Optimistic UI update
+      const div = document.createElement('div');
+      div.className = 'message msg-finder';
+      div.innerText = text;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      lastMessageCount++;
+
+      try {
+        await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logId: LOG_ID, sender: 'finder', message: text })
+        });
+      } catch (err) {
+        console.error("Chat send error:", err);
+      }
+    });
+
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') chatSendBtn.click();
+    });
+
+    // Poll for new messages every 3 seconds
+    setInterval(fetchMessages, 3000);
+    fetchMessages(); // Initial fetch
   </script>
 </body>
 </html>

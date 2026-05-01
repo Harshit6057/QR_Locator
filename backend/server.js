@@ -148,6 +148,43 @@ app.get('/api/logs', async (req, res) => {
   }
 });
 
+// Route: Get chat messages for a specific log
+app.get('/api/messages/:logId', async (req, res) => {
+  const { logId } = req.params;
+  if (!supabase) return res.json({ messages: [] });
+
+  try {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('log_id', logId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    res.json({ messages: data });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+// Route: Send a chat message
+app.post('/api/messages', async (req, res) => {
+  const { logId, sender, message } = req.body;
+  if (!supabase || !logId) return res.status(400).json({ error: 'Invalid request' });
+
+  try {
+    const { data, error } = await supabase
+      .from('messages')
+      .insert([{ log_id: logId, sender, message }])
+      .select();
+
+    if (error) throw error;
+    res.json({ success: true, message: data[0] });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
 // Simple template engine to inject variables into frontend
 const fs = require('fs');
 function renderFrontend(qrId, logId) {
