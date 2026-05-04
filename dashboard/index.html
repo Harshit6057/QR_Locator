@@ -271,6 +271,10 @@
   </div>
 
   <script>
+    // Automatically use localhost for local testing, and Render for live deployment
+    const BACKEND_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") 
+      ? "http://localhost:3000" 
+      : "https://qr-locator.onrender.com";
     let activeLogId = null;
     let chatInterval = null;
     let lastMessageCount = 0;
@@ -280,7 +284,7 @@
       tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading data...</td></tr>';
       
       try {
-        const response = await fetch('/api/logs');
+        const response = await fetch(`${BACKEND_URL}/api/logs`);
         const data = await response.json();
         
         if (data.error) {
@@ -348,7 +352,7 @@
       if (!activeLogId) return;
       
       try {
-        const res = await fetch(`/api/messages/${activeLogId}`);
+        const res = await fetch(`${BACKEND_URL}/api/messages/${activeLogId}`);
         const data = await res.json();
         
         if (data.messages && data.messages.length > lastMessageCount) {
@@ -384,7 +388,7 @@
       lastMessageCount++;
 
       try {
-        await fetch('/api/messages', {
+        await fetch(`${BACKEND_URL}/api/messages`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ logId: activeLogId, sender: 'owner', message: text })

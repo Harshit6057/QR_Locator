@@ -74,6 +74,36 @@ app.get('/track/:id', async (req, res) => {
   res.send(renderFrontend(qrId, null));
 });
 
+// Route: API endpoint for initial scan (used by Vercel frontend)
+app.post('/api/scan', async (req, res) => {
+  const { qrId } = req.body;
+  if (!qrId) return res.status(400).json({ error: 'QR ID is required' });
+
+  const ipAddress = getIpAddress(req);
+  const userAgent = req.headers['user-agent'] || 'Unknown Device';
+  
+  console.log(`[API SCAN] QR ID: ${qrId} | IP: ${ipAddress} | User-Agent: ${userAgent}`);
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('scan_logs')
+        .insert([{ qr_id: qrId, ip_address: ipAddress, device_info: userAgent }])
+        .select();
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        return res.json({ success: true, logId: data[0].id });
+      }
+    } catch (err) {
+      console.error("Database insert error:", err);
+      return res.status(500).json({ error: 'Failed to log scan' });
+    }
+  }
+
+  res.json({ success: true, logId: null, message: 'Logged without DB' });
+});
+
 // Route: Save GPS location
 app.post('/save-location', async (req, res) => {
   const { qrId, logId, latitude, longitude } = req.body;

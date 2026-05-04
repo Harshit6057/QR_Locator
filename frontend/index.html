@@ -255,6 +255,10 @@
       transition: background 0.2s;
     }
     .chat-send-btn:hover { background: var(--primary-hover); }
+
+    .main-content {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -268,36 +272,48 @@
     </div>
     
     <h1>Help Find This Item</h1>
-    <p>This item has been marked as lost. By sharing your location, you can help the owner find it.</p>
     
     <div id="statusBox" class="status"></div>
-    
-    <button id="locationBtn" class="btn">Share Live Location</button>
-    <button id="stopLocationBtn" class="btn error-btn" style="display:none;">Stop Sharing</button>
 
-    <div class="id-badge">ID: <span id="displayId">{{QR_ID}}</span></div>
+    <div class="main-content" id="mainContent">
+      <p>This item has been marked as lost. By sharing your location, you can help the owner find it.</p>
+      
+      <button id="locationBtn" class="btn">Share Live Location</button>
+      <button id="stopLocationBtn" class="btn error-btn" style="display:none;">Stop Sharing</button>
 
-    <!-- Chat Interface -->
-    <div class="chat-section">
-      <h3 style="font-size: 16px; margin-bottom: 12px; text-align: left;">Chat with Owner</h3>
-      <div class="chat-messages" id="chatMessages">
-        <div class="message msg-owner">Hello! Thank you for scanning. Please share your location or message me here.</div>
-      </div>
-      <div class="chat-input-area">
-        <input type="text" id="chatInput" class="chat-input" placeholder="Type a message...">
-        <button id="chatSendBtn" class="chat-send-btn">Send</button>
+      <div class="id-badge">ID: <span id="displayId">Loading...</span></div>
+
+      <!-- Chat Interface -->
+      <div class="chat-section">
+        <h3 style="font-size: 16px; margin-bottom: 12px; text-align: left;">Chat with Owner</h3>
+        <div class="chat-messages" id="chatMessages">
+          <div class="message msg-owner">Hello! Thank you for scanning. Please share your location or message me here.</div>
+        </div>
+        <div class="chat-input-area">
+          <input type="text" id="chatInput" class="chat-input" placeholder="Type a message...">
+          <button id="chatSendBtn" class="chat-send-btn">Send</button>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    // Variables injected by backend
-    const QR_ID = '{{QR_ID}}';
-    const LOG_ID = '{{LOG_ID}}';
+    // Configuration
+    // Automatically use localhost for local testing, and Render for live deployment
+    const BACKEND_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") 
+      ? "http://localhost:3000" 
+      : "https://qr-locator.onrender.com"; 
+    
+    // Parse QR ID from the URL query parameters (e.g., ?id=item_1)
+    const urlParams = new URLSearchParams(window.location.search);
+    const QR_ID = urlParams.get('id');
+    let LOG_ID = null;
 
     const locationBtn = document.getElementById('locationBtn');
     const stopLocationBtn = document.getElementById('stopLocationBtn');
     const statusBox = document.getElementById('statusBox');
+    const mainContent = document.getElementById('mainContent');
+    const displayId = document.getElementById('displayId');
     
     let watchId = null;
 
@@ -309,6 +325,46 @@
         statusBox.innerText = message;
       }
     }
+
+    // Initialization Sequence
+    async function initialize() {
+      if (!QR_ID) {
+        setStatus('error', 'Invalid QR Code. No ID found in URL.');
+        return;
+      }
+      
+      displayId.innerText = QR_ID;
+      setStatus('loading', 'Connecting to secure server...', true);
+
+      // Ping backend to register the scan and get LOG_ID
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/scan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ qrId: QR_ID })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          LOG_ID = data.logId;
+          statusBox.style.display = 'none'; // Hide loading
+          mainContent.style.display = 'block'; // Show UI
+          
+          // Start chat polling now that we have LOG_ID
+          setInterval(fetchMessages, 3000);
+          fetchMessages();
+        } else {
+          setStatus('error', 'Failed to initialize tracking session.');
+        }
+      } catch (err) {
+        console.error("Initialization Error:", err);
+        setStatus('error', 'Could not connect to the server. The backend might be starting up, please refresh in a minute.');
+      }
+    }
+
+    // Start initialization
+    initialize();
 
     locationBtn.addEventListener('click', () => {
       if (!navigator.geolocation) {
@@ -327,7 +383,7 @@
           stopLocationBtn.style.display = 'block';
           
           try {
-            await fetch('/save-location', {
+            await fetch(`${BACKEND_URL}/save-location`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -385,10 +441,10 @@
     let lastMessageCount = 0;
 
     async function fetchMessages() {
-      if (!LOG_ID || LOG_ID === '{{LOG_ID}}') return; // Don't fetch if no real log ID
+      if (!LOG_ID) return; 
       
       try {
-        const res = await fetch(`/api/messages/${LOG_ID}`);
+        const res = await fetch(`${BACKEND_URL}/api/messages/${LOG_ID}`);
         const data = await res.json();
         
         if (data.messages && data.messages.length > lastMessageCount) {
@@ -409,7 +465,7 @@
 
     chatSendBtn.addEventListener('click', async () => {
       const text = chatInput.value.trim();
-      if (!text || !LOG_ID || LOG_ID === '{{LOG_ID}}') return;
+      if (!text || !LOG_ID) return;
       
       chatInput.value = '';
       
@@ -422,7 +478,7 @@
       lastMessageCount++;
 
       try {
-        await fetch('/api/messages', {
+        await fetch(`${BACKEND_URL}/api/messages`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ logId: LOG_ID, sender: 'finder', message: text })
@@ -435,10 +491,6 @@
     chatInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') chatSendBtn.click();
     });
-
-    // Poll for new messages every 3 seconds
-    setInterval(fetchMessages, 3000);
-    fetchMessages(); // Initial fetch
   </script>
 </body>
 </html>
