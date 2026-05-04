@@ -279,7 +279,6 @@
       <p>This item has been marked as lost. By sharing your location, you can help the owner find it.</p>
       
       <button id="locationBtn" class="btn">Share Live Location</button>
-      <button id="stopLocationBtn" class="btn error-btn" style="display:none;">Stop Sharing</button>
 
       <div class="id-badge">ID: <span id="displayId">Loading...</span></div>
 
@@ -310,7 +309,6 @@
     let LOG_ID = null;
 
     const locationBtn = document.getElementById('locationBtn');
-    const stopLocationBtn = document.getElementById('stopLocationBtn');
     const statusBox = document.getElementById('statusBox');
     const mainContent = document.getElementById('mainContent');
     const displayId = document.getElementById('displayId');
@@ -380,7 +378,6 @@
         async (position) => {
           setStatus('success', 'Live Tracking Active. The owner is receiving your location.');
           locationBtn.style.display = 'none';
-          stopLocationBtn.style.display = 'block';
           
           try {
             await fetch(`${BACKEND_URL}/save-location`, {
@@ -420,18 +417,6 @@
           maximumAge: 0
         }
       );
-    });
-
-    stopLocationBtn.addEventListener('click', () => {
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-        setStatus('success', 'Location sharing stopped.');
-        stopLocationBtn.style.display = 'none';
-        locationBtn.style.display = 'block';
-        locationBtn.disabled = false;
-        locationBtn.innerText = 'Resume Sharing Location';
-      }
     });
 
     // Chat Functionality
