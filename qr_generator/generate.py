@@ -33,3 +33,6 @@ if __name__ == "__main__":
     output_directory = os.path.join(project_root, "qr_codes")
     
     generate_qrs(args.url, args.count, output_directory)
+
+
+# python qr_generator/generate.py --url https://qr-locator-frontend.vercel.app/?id= --count 1000
