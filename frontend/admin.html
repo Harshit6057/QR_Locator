@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Smart Tracker</title>
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-hover: #4338CA;
+      --bg-color: #0F172A;
+      --card-bg: #1E293B;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 20px;
+    }
+
+    /* LOGIN UI */
+    .login-container {
+      max-width: 400px;
+      margin: 100px auto;
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      text-align: center;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: white;
+      font-size: 15px;
+    }
+
+    .form-control:focus { outline: none; border-color: var(--primary); }
+
+    .btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: 100%;
+      font-weight: 500;
+    }
+    .btn:hover { background-color: var(--primary-hover); }
+
+    /* DASHBOARD UI */
+    .dashboard-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: none;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 { font-size: 24px; }
+    
+    .logout-btn {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.2); }
+
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.02);
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    td { font-size: 14px; }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
+
+    .action-btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      margin-right: 6px;
+    }
+    .action-btn:hover { background-color: var(--primary-hover); }
+    
+    .chat-btn { background-color: #10B981; }
+    .chat-btn:hover { background-color: #059669; }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 500px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      height: 500px;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 24px;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      max-width: 80%;
+    }
+
+    .msg-owner {
+      background: var(--primary);
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+
+    .msg-finder {
+      background: #334155;
+      color: white;
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+    }
+
+    .chat-input-area {
+      padding: 16px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 10px;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: white;
+      outline: none;
+    }
+
+    .error-msg {
+      color: var(--error);
+      font-size: 14px;
+      margin-top: 10px;
+      display: none;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      background: rgba(255,255,255,0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN UI -->
+  <div class="login-container" id="loginUI">
+    <h2 style="margin-bottom: 20px;">Admin Login</h2>
+    <p style="color:var(--text-muted); font-size:14px; margin-bottom: 20px;">Login to view your registered items.</p>
+    
+    <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label>PIN / Password</label>
+        <input type="password" id="loginPassword" class="form-control" required>
+      </div>
+      <div id="loginError" class="error-msg"></div>
+      <button type="submit" class="btn" style="margin-top:10px;">Login</button>
+    </form>
+  </div>
+
+  <!-- DASHBOARD UI -->
+  <div class="dashboard-container" id="dashboardUI">
+    <div class="header">
+      <div>
+        <h1>My Tracking Dashboard</h1>
+        <p style="color:var(--text-muted); font-size:14px; margin-top:4px;">Logged in as: <span id="userEmailDisplay"></span></p>
+      </div>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="card">
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Item Name</th>
+              <th>Type</th>
+              <th>QR ID</th>
+              <th>Scanned At</th>
+              <th>IP Address</th>
+              <th>Location</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="7" style="text-align:center; color:var(--text-muted);">Loading data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Modal -->
+  <div id="chatModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 16px;">Chat with Finder</h3>
+        <button class="close-btn" onclick="closeChat()">&times;</button>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <!-- Messages populate here -->
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" class="chat-input" placeholder="Type your message...">
+        <button class="btn" style="width: auto;" onclick="sendChatMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Automatically use localhost for local testing, and Render for live deployment
+    const BACKEND_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") 
+      ? "http://localhost:3000" 
+      : "https://qr-locator.onrender.com";
+
+    let activeLogId = null;
+    let chatInterval = null;
+    let lastMessageCount = 0;
+    let fetchLogsInterval = null;
+    
+    const loginUI = document.getElementById('loginUI');
+    const dashboardUI = document.getElementById('dashboardUI');
+    
+    // Check if already logged in
+    const storedEmail = localStorage.getItem('qr_email');
+    const storedPassword = localStorage.getItem('qr_password');
+    
+    if (storedEmail && storedPassword) {
+      showDashboard(storedEmail, storedPassword);
+    }
+
+    async function handleLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errorEl = document.getElementById('loginError');
+      
+      errorEl.style.display = 'none';
+      
+      // Perform a test fetch to verify credentials
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/logs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok || data.error) {
+          errorEl.innerText = data.error || 'Invalid credentials.';
+          errorEl.style.display = 'block';
+        } else {
+          // Success!
+          localStorage.setItem('qr_email', email);
+          localStorage.setItem('qr_password', password);
+          showDashboard(email, password);
+        }
+      } catch (err) {
+        errorEl.innerText = 'Network error connecting to server.';
+        errorEl.style.display = 'block';
+      }
+    }
+    
+    function logout() {
+      localStorage.removeItem('qr_email');
+      localStorage.removeItem('qr_password');
+      if (fetchLogsInterval) clearInterval(fetchLogsInterval);
+      dashboardUI.style.display = 'none';
+      loginUI.style.display = 'block';
+    }
+
+    function showDashboard(email, password) {
+      loginUI.style.display = 'none';
+      dashboardUI.style.display = 'block';
+      document.getElementById('userEmailDisplay').innerText = email;
+      
+      fetchLogs(email, password);
+      // Auto-refresh every 10 seconds
+      fetchLogsInterval = setInterval(() => fetchLogs(email, password), 10000);
+    }
+
+    async function fetchLogs(email, password) {
+      const tbody = document.getElementById('tableBody');
+      
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/logs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          if (data.error === 'Unauthorized') logout(); // Token invalid
+          return;
+        }
+
+        tbody.innerHTML = '';
+
+        if (data.logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No scans found for your items yet.</td></tr>';
+          return;
+        }
+
+        data.logs.forEach(log => {
+          const date = new Date(log.scanned_at).toLocaleString();
+          let locationStr = "Not shared";
+          let actionBtns = '';
+
+          if (log.latitude && log.longitude) {
+            locationStr = `<a href="https://www.google.com/maps?q=${log.latitude},${log.longitude}" target="_blank" style="color:var(--primary);">View Map</a>`;
+          }
+
+          actionBtns = `<button class="action-btn chat-btn" onclick="openChat('${log.id}')">Chat</button>`;
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight:600;">${log.item_name}</td>
+            <td><span class="badge">${log.item_type}</span></td>
+            <td style="font-family:monospace; font-size:12px;">${log.qr_id}</td>
+            <td style="font-size:12px;">${date}</td>
+            <td style="font-family:monospace; font-size:12px;">${log.ip_address}</td>
+            <td>${locationStr}</td>
+            <td>${actionBtns}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error("Failed to fetch logs");
+      }
+    }
+
+    // CHAT SYSTEM
+    const chatModal = document.getElementById('chatModal');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+
+    function openChat(logId) {
+      activeLogId = logId;
+      chatModal.style.display = 'flex';
+      chatMessages.innerHTML = '<div style="text-align:center; color:#94A3B8;">Loading messages...</div>';
+      lastMessageCount = 0;
+      
+      fetchMessages();
+      chatInterval = setInterval(fetchMessages, 3000);
+    }
+
+    function closeChat() {
+      chatModal.style.display = 'none';
+      activeLogId = null;
+      if (chatInterval) {
+        clearInterval(chatInterval);
+        chatInterval = null;
+      }
+    }
+
+    async function fetchMessages() {
+      if (!activeLogId) return;
+      
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/messages/${activeLogId}`);
+        const data = await res.json();
+        
+        if (data.messages && data.messages.length > lastMessageCount) {
+          if (lastMessageCount === 0) chatMessages.innerHTML = '';
+          
+          data.messages.forEach(msg => {
+            const div = document.createElement('div');
+            div.className = `message ${msg.sender === 'owner' ? 'msg-owner' : 'msg-finder'}`;
+            div.innerText = msg.message;
+            chatMessages.appendChild(div);
+          });
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+          lastMessageCount = data.messages.length;
+        }
+      } catch (err) { console.error("Chat fetch error"); }
+    }
+
+    async function sendChatMessage() {
+      const text = chatInput.value.trim();
+      if (!text || !activeLogId) return;
+      
+      chatInput.value = '';
+      
+      const div = document.createElement('div');
+      div.className = 'message msg-owner';
+      div.innerText = text;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      lastMessageCount++;
+
+      try {
+        await fetch(`${BACKEND_URL}/api/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logId: activeLogId, sender: 'owner', message: text })
+        });
+      } catch (err) { console.error("Send error"); }
+    }
+
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendChatMessage();
+    });
+  </script>
+</body>
+</html>
