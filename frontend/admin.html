@@ -569,12 +569,13 @@
     function openRegisterPrompt() {
       const inputVal = prompt("Enter the number of the QR code you want to register (e.g., enter 1 for item_1):");
       if (inputVal && inputVal.trim() !== "") {
-        // Extract only the numbers from their input just in case they typed "item_1" or "1"
+        // Extract only the numbers from their input
         const num = inputVal.replace(/\D/g, '');
         if (num) {
-          window.location.href = `/?id=item_${num}`;
+          // Format exactly as requested: ?id=/track/item_N
+          window.location.href = `/?id=/track/item_${num}`;
         } else {
-          // Fallback if they typed a custom string without numbers
+          // Fallback if they typed a custom string
           window.location.href = `/?id=${inputVal.trim()}`;
         }
       }
