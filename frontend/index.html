@@ -116,6 +116,45 @@
       border: 1px solid rgba(239, 68, 68, 0.2);
     }
 
+    .form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 16px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: white;
+      font-size: 15px;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    select.form-control {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      background-size: 1em;
+    }
+    select.form-control option {
+      background-color: var(--card-bg);
+      color: white;
+    }
+
     .btn {
       background-color: var(--primary);
       color: white;
@@ -134,15 +173,6 @@
     .btn:hover {
       background-color: var(--primary-hover);
       transform: translateY(-1px);
-    }
-
-    .btn.error-btn {
-      background-color: var(--error);
-      box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
-    }
-
-    .btn.error-btn:hover {
-      background-color: var(--error-hover);
     }
 
     .btn:disabled {
@@ -177,6 +207,7 @@
       font-family: monospace;
       color: var(--text-muted);
       margin-top: 10px;
+      margin-bottom: 20px;
     }
 
     /* Chat UI Styles */
@@ -256,8 +287,12 @@
     }
     .chat-send-btn:hover { background: var(--primary-hover); }
 
-    .main-content {
+    .content-section {
       display: none;
+    }
+    
+    .active-section {
+      display: block;
     }
   </style>
 </head>
@@ -266,16 +301,55 @@
   <div class="container">
     <div class="icon-container">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
       </svg>
     </div>
     
-    <h1>Help Find This Item</h1>
+    <h1 id="mainTitle">Smart Tracker</h1>
     
     <div id="statusBox" class="status"></div>
 
-    <div class="main-content" id="mainContent">
+    <!-- REGISTRATION UI -->
+    <div class="content-section" id="registrationContent">
+      <p>This QR Code is unregistered! Register it to yourself so you can start tracking your item.</p>
+      
+      <div class="id-badge">Registering ID: <span id="regDisplayId">...</span></div>
+
+      <form id="registerForm" onsubmit="event.preventDefault(); registerQR();">
+        <div class="form-group">
+          <label>Item Name (e.g., My Black Backpack)</label>
+          <input type="text" id="regItemName" class="form-control" required placeholder="Enter item name">
+        </div>
+        
+        <div class="form-group">
+          <label>Item Type</label>
+          <select id="regItemType" class="form-control" required>
+            <option value="Laptop">Laptop</option>
+            <option value="Mobile">Mobile</option>
+            <option value="Bag">Bag / Backpack</option>
+            <option value="Keys">Keys</option>
+            <option value="Wallet">Wallet</option>
+            <option value="Earbuds">Earbuds</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Your Email Address (For Admin Login)</label>
+          <input type="email" id="regEmail" class="form-control" required placeholder="name@example.com">
+        </div>
+
+        <div class="form-group">
+          <label>Create a PIN / Password</label>
+          <input type="password" id="regPassword" class="form-control" required placeholder="Create a secure password">
+        </div>
+
+        <button type="submit" id="registerBtn" class="btn">Register QR Code</button>
+      </form>
+    </div>
+
+    <!-- TRACKING UI (FOR THE FINDER) -->
+    <div class="content-section" id="trackingContent">
       <p>This item has been marked as lost. By sharing your location, you can help the owner find it.</p>
       
       <button id="locationBtn" class="btn">Share Live Location</button>
@@ -297,24 +371,20 @@
   </div>
 
   <script>
-    // Configuration
     // Automatically use localhost for local testing, and Render for live deployment
     const BACKEND_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") 
       ? "http://localhost:3000" 
       : "https://qr-locator.onrender.com"; 
     
-    // Parse QR ID from the URL query parameters (e.g., ?id=item_1)
     const urlParams = new URLSearchParams(window.location.search);
     const QR_ID = urlParams.get('id');
     let LOG_ID = null;
 
-    const locationBtn = document.getElementById('locationBtn');
     const statusBox = document.getElementById('statusBox');
-    const mainContent = document.getElementById('mainContent');
-    const displayId = document.getElementById('displayId');
+    const trackingContent = document.getElementById('trackingContent');
+    const registrationContent = document.getElementById('registrationContent');
+    const mainTitle = document.getElementById('mainTitle');
     
-    let watchId = null;
-
     function setStatus(type, message, isLoading = false) {
       statusBox.className = `status ${type}`;
       if (isLoading) {
@@ -324,17 +394,22 @@
       }
     }
 
-    // Initialization Sequence
+    function showSection(sectionId) {
+      document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active-section'));
+      if(sectionId) document.getElementById(sectionId).classList.add('active-section');
+    }
+
     async function initialize() {
       if (!QR_ID) {
-        setStatus('error', 'Invalid QR Code. No ID found in URL.');
+        setStatus('error', 'Invalid URL. Please scan a valid QR Code to register or track it.');
         return;
       }
       
-      displayId.innerText = QR_ID;
+      document.getElementById('displayId').innerText = QR_ID;
+      document.getElementById('regDisplayId').innerText = QR_ID;
+      
       setStatus('loading', 'Connecting to secure server...', true);
 
-      // Ping backend to register the scan and get LOG_ID
       try {
         const res = await fetch(`${BACKEND_URL}/api/scan`, {
           method: 'POST',
@@ -344,16 +419,22 @@
         
         const data = await res.json();
         
-        if (data.success) {
+        if (data.registered === false) {
+          // Show Registration UI
+          statusBox.style.display = 'none';
+          mainTitle.innerText = "Register New Item";
+          showSection('registrationContent');
+        } else if (data.success && data.registered === true) {
+          // QR is registered, proceed with Tracking
           LOG_ID = data.logId;
-          statusBox.style.display = 'none'; // Hide loading
-          mainContent.style.display = 'block'; // Show UI
+          statusBox.style.display = 'none';
+          mainTitle.innerText = "Help Find This Item";
+          showSection('trackingContent');
           
-          // Start chat polling now that we have LOG_ID
           setInterval(fetchMessages, 3000);
           fetchMessages();
         } else {
-          setStatus('error', 'Failed to initialize tracking session.');
+          setStatus('error', 'Failed to connect to tracking session.');
         }
       } catch (err) {
         console.error("Initialization Error:", err);
@@ -364,6 +445,51 @@
     // Start initialization
     initialize();
 
+    // ==========================================
+    // REGISTRATION LOGIC
+    // ==========================================
+    async function registerQR() {
+      const itemName = document.getElementById('regItemName').value;
+      const itemType = document.getElementById('regItemType').value;
+      const email = document.getElementById('regEmail').value;
+      const password = document.getElementById('regPassword').value;
+      const btn = document.getElementById('registerBtn');
+
+      btn.disabled = true;
+      setStatus('loading', 'Registering item...', true);
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ qrId: QR_ID, email, password, itemName, itemType })
+        });
+        
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setStatus('success', 'Item registered successfully! Scanning this code will now track its location.');
+          showSection(null); // Hide forms
+          
+          // Show a helpful tip to go to admin
+          const tip = document.createElement('div');
+          tip.innerHTML = `<p style="margin-top:20px;">You can view your item status at:<br><br><b><a href="${BACKEND_URL}/admin" style="color:var(--primary);text-decoration:none;">Admin Dashboard</a></b></p>`;
+          document.querySelector('.container').appendChild(tip);
+        } else {
+          setStatus('error', data.error || 'Registration failed.');
+          btn.disabled = false;
+        }
+      } catch (err) {
+        setStatus('error', 'Network error during registration.');
+        btn.disabled = false;
+      }
+    }
+
+    // ==========================================
+    // TRACKING LOGIC
+    // ==========================================
+    const locationBtn = document.getElementById('locationBtn');
+    let watchId = null;
+
     locationBtn.addEventListener('click', () => {
       if (!navigator.geolocation) {
         setStatus('error', 'Geolocation is not supported by your browser.');
@@ -373,7 +499,6 @@
       locationBtn.disabled = true;
       setStatus('loading', 'Starting live tracking...', true);
 
-      // Use watchPosition for continuous tracking
       watchId = navigator.geolocation.watchPosition(
         async (position) => {
           setStatus('success', 'Live Tracking Active. The owner is receiving your location.');
@@ -400,26 +525,18 @@
             case error.PERMISSION_DENIED:
               setStatus('error', 'Permission denied. We cannot track the location.');
               break;
-            case error.POSITION_UNAVAILABLE:
-              setStatus('error', 'Location information is unavailable.');
-              break;
-            case error.TIMEOUT:
-              setStatus('error', 'The request to get user location timed out.');
-              break;
             default:
-              setStatus('error', 'An unknown error occurred.');
+              setStatus('error', 'Location information is unavailable.');
               break;
           }
         },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     });
 
-    // Chat Functionality
+    // ==========================================
+    // CHAT LOGIC
+    // ==========================================
     const chatMessages = document.getElementById('chatMessages');
     const chatInput = document.getElementById('chatInput');
     const chatSendBtn = document.getElementById('chatSendBtn');
@@ -427,13 +544,12 @@
 
     async function fetchMessages() {
       if (!LOG_ID) return; 
-      
       try {
         const res = await fetch(`${BACKEND_URL}/api/messages/${LOG_ID}`);
         const data = await res.json();
         
         if (data.messages && data.messages.length > lastMessageCount) {
-          chatMessages.innerHTML = ''; // Clear default
+          chatMessages.innerHTML = '';
           data.messages.forEach(msg => {
             const div = document.createElement('div');
             div.className = `message ${msg.sender === 'finder' ? 'msg-finder' : 'msg-owner'}`;
@@ -443,18 +559,14 @@
           chatMessages.scrollTop = chatMessages.scrollHeight;
           lastMessageCount = data.messages.length;
         }
-      } catch (err) {
-        console.error("Chat fetch error:", err);
-      }
+      } catch (err) {}
     }
 
     chatSendBtn.addEventListener('click', async () => {
       const text = chatInput.value.trim();
       if (!text || !LOG_ID) return;
-      
       chatInput.value = '';
       
-      // Optimistic UI update
       const div = document.createElement('div');
       div.className = 'message msg-finder';
       div.innerText = text;
@@ -468,9 +580,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ logId: LOG_ID, sender: 'finder', message: text })
         });
-      } catch (err) {
-        console.error("Chat send error:", err);
-      }
+      } catch (err) {}
     });
 
     chatInput.addEventListener('keypress', (e) => {
