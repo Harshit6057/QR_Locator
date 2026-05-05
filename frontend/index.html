@@ -455,6 +455,13 @@
         statusBox.appendChild(div);
         return;
       }
+
+      // Normalization: Ensure ID starts with /track/ to match generated QR codes
+      if (!QR_ID.startsWith('/track/')) {
+        const newId = '/track/' + QR_ID;
+        window.location.href = `/?id=${newId}`;
+        return;
+      }
       
       document.getElementById('displayId').innerText = QR_ID;
       document.getElementById('regDisplayId').innerText = QR_ID;
