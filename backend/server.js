@@ -215,7 +215,7 @@ app.post('/api/logs', async (req, res) => {
   if (supabase) {
     try {
       // 1. Check for Hardcoded Super Admin
-      if (email === 'admin@admin.com' && password === '123456789') {
+      if (email === 'admin@admin.com' && password === 'qwertyuiop123456789') {
         const { data: allItems } = await supabase.from('registered_items').select('*');
         const { data: allLogs, error } = await supabase.from('scan_logs').select('*').order('scanned_at', { ascending: false });
 
