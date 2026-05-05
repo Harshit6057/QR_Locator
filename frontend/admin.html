@@ -286,7 +286,10 @@
         <h1>My Tracking Dashboard</h1>
         <p style="color:var(--text-muted); font-size:14px; margin-top:4px;">Logged in as: <span id="userEmailDisplay"></span></p>
       </div>
-      <button class="logout-btn" onclick="logout()">Logout</button>
+      <div>
+        <button class="action-btn chat-btn" onclick="openRegisterPrompt()" style="padding: 8px 16px;">+ Register New Item</button>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
     </div>
 
     <div class="card">
@@ -422,7 +425,7 @@
         tbody.innerHTML = '';
 
         if (data.logs.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No scans found for your items yet.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:40px;">No scans found.<br><br><button class="action-btn chat-btn" onclick="openRegisterPrompt()">Register Your First Item</button></td></tr>';
           return;
         }
 
@@ -525,6 +528,13 @@
     chatInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') sendChatMessage();
     });
+
+    function openRegisterPrompt() {
+      const qrId = prompt("Enter the ID of the QR code you want to register (e.g., item_1):");
+      if (qrId && qrId.trim() !== "") {
+        window.location.href = `/?id=${qrId.trim()}`;
+      }
+    }
   </script>
 </body>
 </html>

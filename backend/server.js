@@ -214,7 +214,25 @@ app.post('/api/logs', async (req, res) => {
 
   if (supabase) {
     try {
-      // 1. Authenticate user and get their registered QR IDs
+      // 1. Check for Hardcoded Super Admin
+      if (email === 'admin@admin.com' && password === 'admin123') {
+        const { data: allItems } = await supabase.from('registered_items').select('*');
+        const { data: allLogs, error } = await supabase.from('scan_logs').select('*').order('scanned_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        const enrichedLogs = allLogs.map(log => {
+          const itemInfo = allItems ? allItems.find(i => i.qr_id === log.qr_id) : null;
+          return {
+            ...log,
+            item_name: itemInfo ? itemInfo.item_name : 'Unregistered',
+            item_type: itemInfo ? itemInfo.item_type : 'Unregistered'
+          };
+        });
+        return res.json({ logs: enrichedLogs });
+      }
+
+      // 2. Standard User Authentication
       const { data: userItems, error: authError } = await supabase
         .from('registered_items')
         .select('qr_id, item_name, item_type')
