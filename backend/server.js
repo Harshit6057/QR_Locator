@@ -41,7 +41,7 @@ app.get('/track/:id', async (req, res) => {
   const qrId = req.params.id;
   const ipAddress = getIpAddress(req);
   const userAgent = req.headers['user-agent'] || 'Unknown Device';
-  
+
   console.log(`[SCAN] QR ID: ${qrId} | IP: ${ipAddress} | User-Agent: ${userAgent}`);
 
   // Log initial scan to database (without precise location yet)
@@ -50,8 +50,8 @@ app.get('/track/:id', async (req, res) => {
       const { data, error } = await supabase
         .from('scan_logs')
         .insert([
-          { 
-            qr_id: qrId, 
+          {
+            qr_id: qrId,
             ip_address: ipAddress,
             device_info: userAgent
             // scanned_at is handled by default in DB if set up correctly, or we can use the default now()
@@ -100,7 +100,7 @@ app.post('/api/scan', async (req, res) => {
       // 2. QR is registered. Log the scan.
       const ipAddress = getIpAddress(req);
       const userAgent = req.headers['user-agent'] || 'Unknown Device';
-      
+
       console.log(`[API SCAN] QR ID: ${qrId} | IP: ${ipAddress} | User-Agent: ${userAgent}`);
 
       const { data, error } = await supabase
@@ -137,12 +137,12 @@ app.post('/api/register', async (req, res) => {
       // Insert new registration
       const { error } = await supabase
         .from('registered_items')
-        .insert([{ 
-          qr_id: qrId, 
-          owner_email: email.toLowerCase(), 
+        .insert([{
+          qr_id: qrId,
+          owner_email: email.toLowerCase(),
           owner_password: password, // In production, hash this password!
-          item_name: itemName, 
-          item_type: itemType 
+          item_name: itemName,
+          item_type: itemType
         }]);
 
       if (error) throw error;
@@ -158,7 +158,7 @@ app.post('/api/register', async (req, res) => {
 // Route: Save GPS location
 app.post('/save-location', async (req, res) => {
   const { qrId, logId, latitude, longitude } = req.body;
-  
+
   console.log(`[LOCATION] QR ID: ${qrId} | Lat: ${latitude} | Lng: ${longitude}`);
 
   if (supabase && logId) {
@@ -181,12 +181,12 @@ app.post('/save-location', async (req, res) => {
     // If no logId was provided, create a new record
     const ipAddress = getIpAddress(req);
     const userAgent = req.headers['user-agent'] || 'Unknown Device';
-    
+
     try {
       const { error } = await supabase
         .from('scan_logs')
-        .insert([{ 
-          qr_id: qrId, 
+        .insert([{
+          qr_id: qrId,
           ip_address: ipAddress,
           device_info: userAgent,
           latitude,
@@ -203,7 +203,7 @@ app.post('/save-location', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Server error' });
     }
   }
-  
+
   res.json({ success: true, message: 'Location logged to console (DB not configured)' });
 });
 
@@ -215,12 +215,12 @@ app.post('/api/logs', async (req, res) => {
   if (supabase) {
     try {
       // 1. Check for Hardcoded Super Admin
-      if (email === 'admin@admin.com' && password === 'admin123') {
+      if (email === 'admin@admin.com' && password === '123456789') {
         const { data: allItems } = await supabase.from('registered_items').select('*');
         const { data: allLogs, error } = await supabase.from('scan_logs').select('*').order('scanned_at', { ascending: false });
-        
+
         if (error) throw error;
-        
+
         const enrichedLogs = allLogs.map(log => {
           const itemInfo = allItems ? allItems.find(i => i.qr_id === log.qr_id) : null;
           return {
