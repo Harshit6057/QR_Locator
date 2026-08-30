@@ -214,8 +214,15 @@ app.post('/api/logs', async (req, res) => {
 
   if (supabase) {
     try {
-      // 1. Check for Hardcoded Super Admin
-      if (email === 'admin@admin.com' && password === 'qwertyuiop123456789') {
+      // 1. Check admins table
+      const { data: adminData } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('email', email.toLowerCase())
+        .eq('password', password)
+        .single();
+
+      if (adminData) {
         const { data: allItems } = await supabase.from('registered_items').select('*');
         const { data: allLogs, error } = await supabase.from('scan_logs').select('*').order('scanned_at', { ascending: false });
 
